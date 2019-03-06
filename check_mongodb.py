@@ -396,18 +396,21 @@ def check_connections(con, warning, critical, perf_data):
     warning = warning or 80
     critical = critical or 95
     try:
-        data = get_server_status(con)
+        result = con.admin.command("ismaster")
+        if not result["secondary"]:
+            data = get_server_status(con)
 
-        current = float(data['connections']['current'])
-        available = float(data['connections']['available'])
+            current = float(data['connections']['current'])
+            available = float(data['connections']['available'])
 
-        used_percent = int(float(current / (available + current)) * 100)
-        message = "%i percent (%i of %i connections) used" % (used_percent, current, current + available)
-        message += performance_data(perf_data, [(used_percent, "used_percent", warning, critical),
-                (current, "current_connections"),
-                (available, "available_connections")])
-        return check_levels(used_percent, warning, critical, message)
-
+            used_percent = int(float(current / (available + current)) * 100)
+            message = "%i percent (%i of %i connections) used" % (used_percent, current, current + available)
+            message += performance_data(perf_data, [(used_percent, "used_percent", warning, critical),
+                    (current, "current_connections"),
+                    (available, "available_connections")])
+            return check_levels(used_percent, warning, critical, message)
+        else:
+            return check_levels(0, 10, 100, "Okay")
     except Exception as e:
         return exit_with_general_critical(e)
 
